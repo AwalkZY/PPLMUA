@@ -5,15 +5,17 @@ import type.None;
 import type.Type;
 import type.Number;
 
+import java.util.regex.Pattern;
+
 public class Common {
 	static final double PI = 3.14159;
 	public static final double EPS = 1e-10;
 	static final boolean True = true;
 	static final boolean False = false;
 	static final String[] occipied = {"make","thing","word","erase","number","list","bool","isname","print",
-			"read","readlinst","add","sub","mul","div","mod","eq","gt","lt","and","or","not",":","repeat"};
+			"read","readlinst","add","sub","mul","div","mod","eq","gt","lt","and","or","not","repeat"};
 	static final String[] operator = {"make","thing","erase","isname","print",
-			"read","readlinst","add","sub","mul","div","mod","eq","gt","lt","and","or","not",":","repeat"};
+			"read","readlinst","add","sub","mul","div","mod","eq","gt","lt","and","or","not","repeat"};
 	static final int[] slotNum = {2, //make
 			1, //thing
 			1, //erase
@@ -32,7 +34,6 @@ public class Common {
 			2, //and
 			2, //or
 			2, //not
-			1, //:
 			2, //repeat
 	};
 
@@ -71,5 +72,9 @@ public class Common {
 			return new Bool(constName.equals("True"));
 		}
 		return new None();
+	}
+
+	static public boolean matchNumber(String str) {
+		return Pattern.matches("^-?[0-9]+(.[0-9]+)?$", str);
 	}
 }

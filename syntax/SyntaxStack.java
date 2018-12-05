@@ -4,8 +4,12 @@ import common.Common;
 import type.*;
 import type.Number;
 
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
+import java.awt.print.Book;
+import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Scanner;
 import java.util.Stack;
 import java.util.regex.Pattern;
 
@@ -34,11 +38,10 @@ public class SyntaxStack {
             if (ch == ' ' || ch == '\t') {
                 String comStr = com.toString();
                 int order = Common.getSlotNum(comStr);
-                if (order == -1){
+                if (order == -1) {
                     if (instStack.empty()) throw new Exception("Name Error: Unexpected parameter found.");
                     slotStack.peek().add(fetch(comStr));
-                }
-                else {
+                } else {
                     instStack.push(comStr);
                     slotStack.push(new ArrayList<Type>());
                 }
@@ -60,16 +63,24 @@ public class SyntaxStack {
                 List newList = genList(list.toString());
                 slotStack.peek().add(newList);
             }  //end of list
-            else if (ch == '"') {
+            else if (ch == '"' || ch == ':') {
+                boolean flag = ch == ':';
                 word = new StringBuilder();
-                while (ch != ' ' && ch != '\t') {
+                while (true) {
                     index++;
                     if (index >= command.length()) break;
                     ch = command.charAt(index);
+                    if (ch == ' ' || ch == '\t') break;
                     word.append(ch);
                 }
-                Word newWord = new Word(word.toString());
-                slotStack.peek().add(newWord);
+                if (flag)
+                    if (variable.containsKey(word.toString()))
+                        slotStack.peek().add(variable.get(word.toString()));
+                    else throw new Exception("Name Error : Unknown parameter detected.");
+                else {
+                    Word newWord = new Word(word.toString());
+                    slotStack.peek().add(newWord);
+                }
             }  //end of word
             else com.append(command.charAt(index));
             sortStack();
@@ -77,27 +88,37 @@ public class SyntaxStack {
         }  //end of while-loop
     }
 
-    private List genList(String listStr) {
-        List newList = new List();
-        ArrayList<Type> element = new ArrayList<>();
+    private List genList(String listStr) throws Exception {
+        ArrayList<Type> eleList = new ArrayList<>();
         Stack<ArrayList<Type>> eleStack = new Stack<>();
-        for (int i = 0; i < listStr.length(); i++){
+        StringBuilder eleBuilder = new StringBuilder();
+        String eleStr;
+        for (int i = 0; i < listStr.length(); i++) {
             char ch = listStr.charAt(i);
             if (ch == '[') {
                 eleStack.push(new ArrayList<>());
                 continue;
             }
-            if (ch == ']') {
-                element = eleStack.pop();
-
+            if ((ch == ' ' || ch == '\t' || ch == ']') && !eleBuilder.toString().isEmpty()) {
+                eleStr = eleBuilder.toString();
+                if (eleStr.charAt(0) == '"') { //word
+                    eleStack.peek().add(new Word(eleStr.substring(1)));
+                } else if (!Common.isNone(Common.getConstant(eleStr))) { //constant
+                    eleStack.peek().add(Common.getConstant(eleStr));
+                }
+                if (Pattern.matches("^-?[0-9]+(.[0-9]+)?$", eleStr)) {  //number
+                    eleStack.peek().add(new Number(Double.valueOf(eleStr)));
+                }
+                eleBuilder = new StringBuilder();
+                if (ch == ']') {
+                    eleList = eleStack.pop();
+                    eleStack.peek().add(new List(eleList));
+                }
                 continue;
             }
-            if (ch == ' ' || ch == '\t') {
-                continue;
-            }
-
+            eleBuilder.append(ch);
         }
-        return newList;
+        return new List(eleStack.pop());
     }
 
     private void sortStack() throws Exception {  //整理栈内容
@@ -117,13 +138,13 @@ public class SyntaxStack {
 
     public Type fetch(String operand) throws Exception {
         //优先判断是否是标识符，如果是，查找变量表，如果变量表内无该标识符，则查找常量表，如常量表内无该操作符，抛出异常
-        if (variable.containsKey(operand)) {
+        /*if (variable.containsKey(operand)) {
             return variable.get(operand);
-        }
+        }*/
         if (!Common.isNone(Common.getConstant(operand))) {
             return Common.getConstant(operand);
         }
-        if (Pattern.matches("^-?[0-9]+(.[0-9]+)?$",operand)){  //number
+        if (Common.matchNumber(operand)) {  //number
             return new Number(Double.valueOf(operand));
         }
         throw new Exception("Name Error: Unknown parameter or operation detected.");
@@ -131,18 +152,80 @@ public class SyntaxStack {
 
     public Type issueFun(String operator, ArrayList<Type> slot) throws Exception {
         switch (operator) {
-            case "make": return make(slot);
-            case "thing": return thing(slot);
-            case ":": return thing(slot);
-            case "erase": return erase(slot);
-            case "print": return print(slot);
-            case "read": return read(slot);
-            case "readlinst": return readlinst(slot);
-            case "add": case "sub": case "mul": case "div": case "mod": return calculate(slot,operator);
-            case "isname": return isname(slot);
+            case "make":
+                return make(slot);
+            case "thing":
+                return thing(slot);
+            case "erase":
+                return erase(slot);
+            case "print":
+                return print(slot);
+            case "read":
+                return read(slot);
+            case "readlinst":
+                return readlinst(slot);
+            case "add":
+            case "sub":
+            case "mul":
+            case "div":
+            case "mod":
+                return calNum(slot, operator);
+            case "eq":
+            case "gt":
+            case "lt":
+                return compare(slot, operator);
+            case "and":
+            case "or":
+            case "not":
+                return calBool(slot, operator);
+            case "isname":
+                return isname(slot);
         }
         return new None();
     }
+
+    private Type calBool(ArrayList<Type> slot, String operator) throws Exception {
+        if (operator.equals("not")) {
+            assert slot.size() == 1;
+            Type para = slot.get(0);
+            if (!Common.isBool(para)) throw new Exception("Type Error: this data type is improper for bool operation");
+            return new Bool(!((Bool) (para)).get());
+        }
+        assert slot.size() == 2;
+        Type para1 = slot.get(0);
+        Type para2 = slot.get(1);
+        if (!Common.isBool(para1) || !Common.isBool(para2))
+            throw new Exception("Type Error: this data type is improper for bool operation");
+        if (operator.equals("and")) return new Bool(((Bool) (para1)).get() && ((Bool) (para2)).get());
+        if (operator.equals("or")) return new Bool(((Bool) (para1)).get() || ((Bool) (para2)).get());
+        return new None();
+    }
+
+    private Type compare(ArrayList<Type> slot, String operator) throws Exception {
+        assert slot.size() == 2;
+        Type para1 = slot.get(0);
+        Type para2 = slot.get(1);
+        if (para1.getTypeCode() != para2.getTypeCode() || (!Common.isWord(para1) && !Common.isNumber(para1)) || (!Common.isWord(para2) && !Common.isNumber(para2)))
+            throw new Exception("Type Error: This kind of data can't be compared.");
+        if (Common.isNumber(para1)) {
+            double num1 = ((Number) (para1)).get();
+            double num2 = ((Number) (para2)).get();
+            if (operator.equals("eq") && num1 == num2) return new Bool(true);
+            if (operator.equals("lt") && num1 < num2) return new Bool(true);
+            if (operator.equals("gt") && num1 > num2) return new Bool(true);
+            return new Bool(false);
+        }
+        if (Common.isWord(para1)) {
+            String str1 = ((Word) (para1)).get();
+            String str2 = ((Word) (para2)).get();
+            if (operator.equals("eq") && str1.compareTo(str2) == 0) return new Bool(true);
+            if (operator.equals("lt") && str1.compareTo(str2) < 0) return new Bool(true);
+            if (operator.equals("gt") && str1.compareTo(str2) > 0) return new Bool(true);
+            return new Bool(false);
+        }
+        return new Bool(false);
+    }
+
 
     private Type isname(ArrayList<Type> slot) throws Exception {
         assert slot.size() == 1;
@@ -156,12 +239,17 @@ public class SyntaxStack {
         return new None();
     }
 
-    private Type read(ArrayList<Type> slot) {
+    private Type read(ArrayList<Type> slot) throws Exception {
         assert slot.size() == 0;
-        return new None();
+        Scanner in = new Scanner(System.in);
+        System.out.println("<<<");
+        String str = in.next();
+        if (Common.matchNumber(str)) return new Number(Double.valueOf(str));
+        if (str.equals("True") || str.equals("False")) return new Bool(str.equals("True"));
+        return new Word(str);
     }
 
-    private Type print(ArrayList<Type> slot){
+    private Type print(ArrayList<Type> slot) {
         assert slot.size() == 1;
         Type outPara = slot.get(0);
         if (!Common.isNone(outPara)) System.out.println(outPara.toString());
@@ -173,7 +261,7 @@ public class SyntaxStack {
         Type para1 = slot.get(0);
         Type para2 = slot.get(1);
         if (!Common.isWord(para1)) throw new Exception("Syntax Error: improper parameter for make operation!");
-        String varStr = ((Word)(para1)).get();
+        String varStr = ((Word) (para1)).get();
         variable.put(varStr, para2);
         return new None();
     }
@@ -190,12 +278,12 @@ public class SyntaxStack {
         assert slot.size() == 1;
         Type para = slot.get(0);
         if (!Common.isWord(para)) throw new Exception("Type Error: improper parameter for thing operation!");
-        String varStr = ((Word)(para)).get();
+        String varStr = ((Word) (para)).get();
         if (variable.containsKey(varStr)) return variable.get(varStr);
         throw new Exception("Name Error: Unknown variable name detected!");
     }
 
-    private Type calculate(ArrayList<Type> slot, String operation) throws Exception {
+    private Type calNum(ArrayList<Type> slot, String operation) throws Exception {
         assert slot.size() == 2;
         Type para1 = slot.get(0);
         Type para2 = slot.get(1);

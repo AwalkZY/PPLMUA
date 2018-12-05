@@ -10,6 +10,10 @@ public class List implements Type{
 		content = new ArrayList<>();
 	}
 
+	public List(ArrayList<Type> content) {
+		this.content = content;
+	}
+
 	public void set(Object o) throws Exception{
 		if (o instanceof List) {
 			content = new ArrayList<>(((List) o).content);
