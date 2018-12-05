@@ -47,6 +47,10 @@ public class List implements Type{
 		return content;
 	}
 
+	public boolean isEmpty() {
+		return content.size() == 0;
+	}
+
 	@Override
 	public int getTypeCode() {
 		return typeCode;

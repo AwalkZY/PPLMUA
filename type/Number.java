@@ -8,11 +8,11 @@ public class Number implements Type{
 		this(0);
 	}
 	
-	public Number(Integer number) throws Exception {
+	public Number(int number) throws Exception {
 		set(number);
 	}
 
-    public Number(Double number) throws Exception {
+    public Number(double number) throws Exception {
 		set(number);
 	}
 	

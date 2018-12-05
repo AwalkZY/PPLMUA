@@ -15,7 +15,8 @@ public class Common {
 	static final String[] occipied = {"make","thing","word","erase","number","list","bool","isname","print",
 			"read","readlinst","add","sub","mul","div","mod","eq","gt","lt","and","or","not","repeat"};
 	static final String[] operator = {"make","thing","erase","isname","print",
-			"read","readlinst","add","sub","mul","div","mod","eq","gt","lt","and","or","not","repeat"};
+			"read","readlinst","add","sub","mul","div","mod","eq","gt","lt","and","or","not","repeat",
+	"int","isnumber","isword","islist","isbool","isempty"};
 	static final int[] slotNum = {2, //make
 			1, //thing
 			1, //erase
@@ -35,6 +36,12 @@ public class Common {
 			2, //or
 			2, //not
 			2, //repeat
+			1, //int,
+			1, //isnumber
+			1, //isword
+			1, //islist
+			1, //isbool
+			1, //isempty
 	};
 
 	static public int getSlotNum(String str){

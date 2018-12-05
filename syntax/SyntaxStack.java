@@ -4,9 +4,6 @@ import common.Common;
 import type.*;
 import type.Number;
 
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
-import java.awt.print.Book;
-import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -37,15 +34,17 @@ public class SyntaxStack {
             ch = command.charAt(index);
             if (ch == ' ' || ch == '\t') {
                 String comStr = com.toString();
-                int order = Common.getSlotNum(comStr);
-                if (order == -1) {
-                    if (instStack.empty()) throw new Exception("Name Error: Unexpected parameter found.");
-                    slotStack.peek().add(fetch(comStr));
-                } else {
-                    instStack.push(comStr);
-                    slotStack.push(new ArrayList<Type>());
+                if (!comStr.isEmpty()) {
+                    int order = Common.getSlotNum(comStr);
+                    if (order == -1) {
+                        if (instStack.empty()) throw new Exception("Name Error: Unexpected parameter found.");
+                        slotStack.peek().add(fetch(comStr));
+                    } else {
+                        instStack.push(comStr);
+                        slotStack.push(new ArrayList<Type>());
+                    }
+                    com = new StringBuilder();
                 }
-                com = new StringBuilder();
             } //end of issuing
             else if (ch == '[') {  //here we generate a list
                 list = new StringBuilder();
@@ -180,8 +179,60 @@ public class SyntaxStack {
                 return calBool(slot, operator);
             case "isname":
                 return isname(slot);
+            case "int":
+                return floor(slot);
+            case "isword":
+                return isword(slot);
+            case "isnumber":
+                return isnumber(slot);
+            case "islist":
+                return islist(slot);
+            case "isempty":
+                return isempty(slot);
+            case "isbool":
+                return isbool(slot);
         }
         return new None();
+    }
+
+    private Type isbool(ArrayList<Type> slot) throws Exception {
+        assert slot.size() == 1;
+        return new Bool(Common.isBool(slot.get(0)));
+    }
+
+    private Type isempty(ArrayList<Type> slot) throws Exception {
+        assert slot.size() == 1;
+        Type para = slot.get(0);
+        if (Common.isWord(para)) {
+            return new Bool(((Word)(para)).get().isEmpty());
+        }
+        if (Common.isList(para)) {
+            return new Bool(((List)(para)).isEmpty());
+        }
+        throw new Exception("Type Error: this data type is improper for isempty operation");
+    }
+
+    private Type islist(ArrayList<Type> slot) throws Exception {
+        assert slot.size() == 1;
+        return new Bool(Common.isList(slot.get(0)));
+    }
+
+    private Type isnumber(ArrayList<Type> slot) throws Exception {
+        assert slot.size() == 1;
+        return new Bool(Common.isNumber(slot.get(0)));
+    }
+
+    private Type isword(ArrayList<Type> slot) throws Exception {
+        assert slot.size() == 1;
+        return new Bool(Common.isWord(slot.get(0)));
+    }
+
+    private Type floor(ArrayList<Type> slot) throws Exception {
+        assert slot.size() == 1;
+        Type para = slot.get(0);
+        if (!Common.isNumber(para)) throw new Exception("Type Error: this data type is improper for floor operation");
+        double ans = ((Number) para).get().intValue();
+        return new Number(ans);
     }
 
     private Type calBool(ArrayList<Type> slot, String operator) throws Exception {
@@ -295,13 +346,7 @@ public class SyntaxStack {
         double divisor = (Double) para2.get();
         if (Math.abs(divisor) < Common.EPS) throw new Exception("Zero Division Error : Divided by zero.");
         if (operation.equals("div")) return new Number((Double) para1.get() / (Double) para2.get());
-        if (operation.equals("mod")) {
-            if (!((Number) para1).isInt() || !((Number) para2).isInt())
-                throw new Exception("Modulo Error: Divisor should be an integer.");
-            int num = ((Double) para1.get()).intValue();
-            int den = ((Double) para2.get()).intValue();
-            return new Number(num % den);
-        }
+        if (operation.equals("mod")) return new Number((Double) para1.get() % (Double) para2.get());
         return new None();
     }
 }
