@@ -35,6 +35,7 @@ public class SyntaxStack {
                 String comStr = com.toString();
                 int order = Common.getSlotNum(comStr);
                 if (order == -1){
+                    if (instStack.empty()) throw new Exception("Name Error: Unexpected parameter found.");
                     slotStack.peek().add(fetch(comStr));
                 }
                 else {
@@ -125,7 +126,7 @@ public class SyntaxStack {
         if (Pattern.matches("^-?[0-9]+(.[0-9]+)?$",operand)){  //number
             return new Number(Double.valueOf(operand));
         }
-        throw new Error("Name Error: Unknown parameter or operation detected.");
+        throw new Exception("Name Error: Unknown parameter or operation detected.");
     }
 
     public Type issueFun(String operator, ArrayList<Type> slot) throws Exception {
@@ -137,7 +138,7 @@ public class SyntaxStack {
             case "print": return print(slot);
             case "read": return read(slot);
             case "readlinst": return readlinst(slot);
-            case "add": return calculate(slot,"add");
+            case "add": case "sub": case "mul": case "div": case "mod": return calculate(slot,operator);
             case "isname": return isname(slot);
         }
         return new None();
@@ -191,7 +192,7 @@ public class SyntaxStack {
         if (!Common.isWord(para)) throw new Exception("Type Error: improper parameter for thing operation!");
         String varStr = ((Word)(para)).get();
         if (variable.containsKey(varStr)) return variable.get(varStr);
-        throw new Error("Name Error: Unknown variable name detected!");
+        throw new Exception("Name Error: Unknown variable name detected!");
     }
 
     private Type calculate(ArrayList<Type> slot, String operation) throws Exception {

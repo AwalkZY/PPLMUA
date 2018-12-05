@@ -30,6 +30,7 @@ public class Main {
 		@SuppressWarnings("resource")
 		Scanner in = new Scanner(System.in); 
 		while (true) {
+            System.out.print(">>>");
 			command = in.nextLine();
             try {
                 cli.acceptCommand(command);
