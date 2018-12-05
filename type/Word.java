@@ -4,11 +4,11 @@ public class Word implements Type{
 	String content;
 	static final int typeCode = 2;
 	
-	Word() throws Exception {
-		this(new String(""));
+	public Word() throws Exception {
+		this("");
 	}
 	
-	Word(String str) {
+	public Word(String str) {
 		content = str.intern().toString();
 	}
 	
@@ -17,11 +17,20 @@ public class Word implements Type{
 			content = (String) o; 
 		}
 		else {
-			throw new Exception("Incompatible value assigned to a instance of Word."); 
+			throw new Exception("Type Error: Incompatible value assigned to a instance of Word.");
 		}
 	}
 	
 	public String get() {
 		return content;
+	}
+
+	public String toString(){
+		return content.toString();
+	}
+
+	@Override
+	public int getTypeCode() {
+		return typeCode;
 	}
 }

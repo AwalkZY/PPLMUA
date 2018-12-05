@@ -1,19 +1,18 @@
 package type;
 
 public class Number implements Type{
-	Double content = 0.0;
-	boolean isInt = true;
-	static final int typeCode = 0;
+	private Double content = 0.0;
+	private static final int typeCode = 0;
 	
-	Number() throws Exception {
+	public Number() throws Exception {
 		this(0);
 	}
 	
-	Number(Integer number) throws Exception {
+	public Number(Integer number) throws Exception {
 		set(number);
 	}
-	
-	Number(Double number) throws Exception {
+
+    public Number(Double number) throws Exception {
 		set(number);
 	}
 	
@@ -22,21 +21,27 @@ public class Number implements Type{
 	}
 	
 	Integer getInt() {
-		return Integer.valueOf((int)(double) content);
+		return (int) (double) content;
 	}
 
 	public void set(Object o) throws Exception {
-		if (o instanceof Integer) {
-			this.isInt = true;
-			this.content = (Double) o;
-		}
-		else if (o instanceof Double) {
-			this.isInt = false;
-			this.content = (Double) o;
-		}
+        if (o instanceof Integer || o instanceof Double) this.content = (Double) o;
 		else {
-			throw new Exception("Incompatible value assigned to a instance of Number."); 
+			throw new Exception("Type Error: Incompatible value assigned to a instance of Number.");
 		}
 	}
-	
+
+    public String toString(){
+        return content.toString();
+    }
+
+	@Override
+	public int getTypeCode() {
+		return typeCode;
+	}
+
+	public boolean isInt() {
+	    double con = content;
+	    return (int) con == con;
+    }
 }

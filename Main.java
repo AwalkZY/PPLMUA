@@ -2,30 +2,28 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
-
-import type.*;
+import java.util.regex.Pattern;
 import common.*;
+import syntax.SyntaxStack;
 
 public class Main {
 
-	private ArrayList<Type> variable;
-	
-	public Main() {
-		variable = new ArrayList<>();
-		
-	}
-		
-	void interprete(String command) {
-		String[] comList = command.split("[ |\t|\n]+");
-		String operator = comList[0];
-		String[] paraList = Arrays.copyOfRange(comList,1,comList.length);
-		System.out.println(operator);
-		for (String aParaList : paraList)
-			System.out.println(aParaList);
-	}
-	
+    SyntaxStack syntax = new SyntaxStack();
 
-	public static void main(String[] args) {
+    public Main() {}
+
+    private String hideComment(String command) {
+        return command.replaceAll("//.*","");
+    }
+
+    public void acceptCommand(String command) throws Exception {
+        String newCom = hideComment(command).trim();
+        System.out.println(newCom);
+        if (!newCom.isEmpty())
+            syntax.interprete(hideComment(command));
+    }
+
+    public static void main(String[] args) {
 		Main cli = new Main();
 		String command;
 		
@@ -33,7 +31,11 @@ public class Main {
 		Scanner in = new Scanner(System.in); 
 		while (true) {
 			command = in.nextLine();
-			cli.interprete(command);
-		}
+            try {
+                cli.acceptCommand(command);
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+        }
 	}
 }

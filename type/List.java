@@ -3,24 +3,31 @@ package type;
 import java.util.ArrayList;
 
 public class List implements Type{
-	ArrayList<Object> content;
-	static final int typeCode = 1;
+	private ArrayList<Type> content;
+	private static final int typeCode = 1;
 
 	public List(){
 		content = new ArrayList<>();
 	}
-	
-	@SuppressWarnings("unchecked")
+
 	public void set(Object o) throws Exception{
 		if (o instanceof List) {
-			content = (ArrayList<Object>) ((List) o).content.clone();
+			content = new ArrayList<>(((List) o).content);
 		}
 		else {
-			throw new Exception("Incompatible value assigned to a instance of List."); 
+			throw new Exception("Type Error: Incompatible value assigned to a instance of List.");
 		}
 	}
 
-	void add(Object e) {
+	public String toString(){
+		return content.toString();
+	}
+
+	public void set(ArrayList<Type> content) {
+		this.content = new ArrayList<>(content);
+	}
+
+	public void add(Type e) {
 		content.add(e);
 	}
 	
@@ -28,11 +35,16 @@ public class List implements Type{
 		return content.size();
 	}
 	
-	Object get(int index) {
-		return content.get(index);
+	public Type get(int index) {
+		return (Type) content.get(index);
 	}
 	
 	public Object get() {
 		return content;
+	}
+
+	@Override
+	public int getTypeCode() {
+		return typeCode;
 	}
 }
