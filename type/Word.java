@@ -1,8 +1,8 @@
 package type;
 
 public class Word implements Type{
-	String content;
-	static final int typeCode = 2;
+	private String content;
+	private static final int typeCode = 2;
 	
 	public Word() throws Exception {
 		this("");

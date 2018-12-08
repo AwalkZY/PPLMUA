@@ -10,6 +10,9 @@ import java.util.Scanner;
 import java.util.Stack;
 import java.util.regex.Pattern;
 
+
+//todo: 封装variable的取出与加入
+
 public class SyntaxStack {
     private Stack<String> instStack;
     private Stack<ArrayList<Type>> slotStack;
@@ -20,6 +23,10 @@ public class SyntaxStack {
         variable = new HashMap<>();
         instStack = new Stack<>();
         slotStack = new Stack<>();
+    }
+
+    public boolean isEmpty(){
+        return instStack.isEmpty();
     }
 
     public void interprete(String command) throws Exception {
@@ -37,7 +44,7 @@ public class SyntaxStack {
                 if (!comStr.isEmpty()) {
                     int order = Common.getSlotNum(comStr);
                     if (order == -1) {
-                        if (instStack.empty()) throw new Exception("Name Error: Unexpected parameter found.");
+                        if (instStack.empty()) throw new Exception("Name Error: Unexpected parameter or operator found.");
                         slotStack.peek().add(fetch(comStr));
                     } else {
                         instStack.push(comStr);
@@ -75,7 +82,7 @@ public class SyntaxStack {
                 if (flag)
                     if (variable.containsKey(word.toString()))
                         slotStack.peek().add(variable.get(word.toString()));
-                    else throw new Exception("Name Error : Unknown parameter detected.");
+                    else throw new Exception("Name Error : Unknown parameter detected!");
                 else {
                     Word newWord = new Word(word.toString());
                     slotStack.peek().add(newWord);
@@ -120,10 +127,10 @@ public class SyntaxStack {
         return new List(eleStack.pop());
     }
 
-    private void sortStack() throws Exception {  //整理栈内容
+    private void sortStack() throws Exception {  
         if (slotStack.empty()) return;
-        ArrayList<Type> slot = slotStack.peek();  //取出最顶端的slot
-        while (slot.size() == Common.getSlotNum(instStack.peek())) { //如果栈顶的ArrayList已经达到要求的值
+        ArrayList<Type> slot = slotStack.peek();
+        while (slot.size() == Common.getSlotNum(instStack.peek())) {
             String curInst = instStack.pop();
             slot = slotStack.pop();
             /*System.out.println(curInst);
@@ -135,8 +142,7 @@ public class SyntaxStack {
         }
     }
 
-    public Type fetch(String operand) throws Exception {
-        //优先判断是否是标识符，如果是，查找变量表，如果变量表内无该标识符，则查找常量表，如常量表内无该操作符，抛出异常
+    private Type fetch(String operand) throws Exception {
         /*if (variable.containsKey(operand)) {
             return variable.get(operand);
         }*/
@@ -146,10 +152,13 @@ public class SyntaxStack {
         if (Common.matchNumber(operand)) {  //number
             return new Number(Double.valueOf(operand));
         }
-        throw new Exception("Name Error: Unknown parameter or operation detected.");
+        throw new Exception("Name Error: Unknown parameter or operation detected!");
     }
 
-    public Type issueFun(String operator, ArrayList<Type> slot) throws Exception {
+    private Type issueFun(String operator, ArrayList<Type> slot) throws Exception {
+        for (Type type : slot) {
+            if (Common.isNone(type)) throw new Exception("Type Error: Invalid data type for " + operator + " operand!");
+        }
         switch (operator) {
             case "make":
                 return make(slot);
@@ -161,8 +170,8 @@ public class SyntaxStack {
                 return print(slot);
             case "read":
                 return read(slot);
-            case "readlinst":
-                return readlinst(slot);
+            case "readlist":
+                return readlist(slot);
             case "add":
             case "sub":
             case "mul":
@@ -209,7 +218,7 @@ public class SyntaxStack {
         if (Common.isList(para)) {
             return new Bool(((List)(para)).isEmpty());
         }
-        throw new Exception("Type Error: this data type is improper for isempty operation");
+        throw new Exception("Type Error: Improper data type for isempty operation");
     }
 
     private Type islist(ArrayList<Type> slot) throws Exception {
@@ -230,7 +239,7 @@ public class SyntaxStack {
     private Type floor(ArrayList<Type> slot) throws Exception {
         assert slot.size() == 1;
         Type para = slot.get(0);
-        if (!Common.isNumber(para)) throw new Exception("Type Error: this data type is improper for floor operation");
+        if (!Common.isNumber(para)) throw new Exception("Type Error: Improper data type for floor operation");
         double ans = ((Number) para).get().intValue();
         return new Number(ans);
     }
@@ -239,14 +248,14 @@ public class SyntaxStack {
         if (operator.equals("not")) {
             assert slot.size() == 1;
             Type para = slot.get(0);
-            if (!Common.isBool(para)) throw new Exception("Type Error: this data type is improper for bool operation");
+            if (!Common.isBool(para)) throw new Exception("Type Error: Improper data type for bool operation");
             return new Bool(!((Bool) (para)).get());
         }
         assert slot.size() == 2;
         Type para1 = slot.get(0);
         Type para2 = slot.get(1);
         if (!Common.isBool(para1) || !Common.isBool(para2))
-            throw new Exception("Type Error: this data type is improper for bool operation");
+            throw new Exception("Type Error: Improper data type for bool operation");
         if (operator.equals("and")) return new Bool(((Bool) (para1)).get() && ((Bool) (para2)).get());
         if (operator.equals("or")) return new Bool(((Bool) (para1)).get() || ((Bool) (para2)).get());
         return new None();
@@ -257,7 +266,7 @@ public class SyntaxStack {
         Type para1 = slot.get(0);
         Type para2 = slot.get(1);
         if (para1.getTypeCode() != para2.getTypeCode() || (!Common.isWord(para1) && !Common.isNumber(para1)) || (!Common.isWord(para2) && !Common.isNumber(para2)))
-            throw new Exception("Type Error: This kind of data can't be compared.");
+            throw new Exception("Type Error: Improper data type for comparison.");
         if (Common.isNumber(para1)) {
             double num1 = ((Number) (para1)).get();
             double num2 = ((Number) (para2)).get();
@@ -283,17 +292,18 @@ public class SyntaxStack {
         Type para = slot.get(0);
         if (!Common.isWord(para)) return new Bool(false);
         if (variable.containsKey(para.toString())) return new Bool(true);
+        if (Common.isOccupied(para.toString())) return new Bool(true);
         return new Bool(false);
     }
 
-    private Type readlinst(ArrayList<Type> slot) {
+    private Type readlist(ArrayList<Type> slot) {
         return new None();
     }
 
     private Type read(ArrayList<Type> slot) throws Exception {
         assert slot.size() == 0;
         Scanner in = new Scanner(System.in);
-        System.out.println("<<<");
+        System.out.print("<<<");
         String str = in.next();
         if (Common.matchNumber(str)) return new Number(Double.valueOf(str));
         if (str.equals("True") || str.equals("False")) return new Bool(str.equals("True"));
@@ -311,16 +321,21 @@ public class SyntaxStack {
         assert slot.size() == 2;
         Type para1 = slot.get(0);
         Type para2 = slot.get(1);
-        if (!Common.isWord(para1)) throw new Exception("Syntax Error: improper parameter for make operation!");
+        if (!Common.isWord(para1)) throw new Exception("Syntax Error: Improper parameter for make operation!");
         String varStr = ((Word) (para1)).get();
-        variable.put(varStr, para2);
+        if (Common.isOccupied(varStr)) throw new Exception("Syntax Error: Improper parameter for make operation!");
+        if ((varStr.charAt(0) >= 'a' && varStr.charAt(0) <= 'z') || (varStr.charAt(0) >= 'A' && varStr.charAt(0) <= 'Z'))
+            variable.put(varStr, para2);
+        else throw new Exception("Type Error: Improper data type for make operation!");
         return new None();
     }
 
     private Type erase(ArrayList<Type> slot) throws Exception {
         assert slot.size() == 1;
         Type para = slot.get(0);
-        if (!Common.isWord(para)) throw new Exception("Type Error: improper parameter for erase operation");
+        if (!Common.isWord(para)) throw new Exception("Type Error: Improper parameter for erase operation");
+        if (Common.isOccupied(para.toString())) throw new Exception("Name Error: keyword can't be erased.");
+        if (!variable.containsKey(para.toString())) throw new Exception("Name Error: Unknown parameter detected.");
         variable.remove(para.toString());
         return new None();
     }
@@ -328,7 +343,7 @@ public class SyntaxStack {
     private Type thing(ArrayList<Type> slot) throws Exception {
         assert slot.size() == 1;
         Type para = slot.get(0);
-        if (!Common.isWord(para)) throw new Exception("Type Error: improper parameter for thing operation!");
+        if (!Common.isWord(para)) throw new Exception("Type Error: Improper parameter for thing operation!");
         String varStr = ((Word) (para)).get();
         if (variable.containsKey(varStr)) return variable.get(varStr);
         throw new Exception("Name Error: Unknown variable name detected!");
@@ -339,7 +354,7 @@ public class SyntaxStack {
         Type para1 = slot.get(0);
         Type para2 = slot.get(1);
         if (!Common.isNumber(para1) || !Common.isNumber(para2))
-            throw new Exception("Type Error: this data type is improper for add operation");
+            throw new Exception("Type Error: Improper data type for add operation");
         if (operation.equals("add")) return new Number((Double) para1.get() + (Double) para2.get());
         if (operation.equals("sub")) return new Number((Double) para1.get() - (Double) para2.get());
         if (operation.equals("mul")) return new Number((Double) para1.get() * (Double) para2.get());
@@ -348,5 +363,10 @@ public class SyntaxStack {
         if (operation.equals("div")) return new Number((Double) para1.get() / (Double) para2.get());
         if (operation.equals("mod")) return new Number((Double) para1.get() % (Double) para2.get());
         return new None();
+    }
+
+    public void clear() {
+        instStack = new Stack<>();
+        slotStack = new Stack<>();
     }
 }

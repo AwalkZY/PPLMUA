@@ -13,12 +13,12 @@ public class Main {
     public Main() {}
 
     private String hideComment(String command) {
-        return command.replaceAll("//.*","");
+        return command.replaceAll("\\s//.*","");
     }
 
     public void acceptCommand(String command) throws Exception {
         String newCom = hideComment(command).trim();
-        System.out.println(newCom);
+        //System.out.println(newCom);
         if (!newCom.isEmpty())
             syntax.interprete(hideComment(command));
     }
@@ -30,11 +30,13 @@ public class Main {
 		@SuppressWarnings("resource")
 		Scanner in = new Scanner(System.in); 
 		while (true) {
-            System.out.print(">>>");
+            if (cli.syntax.isEmpty()) System.out.print(">>>");
+            else System.out.print("...");
 			command = in.nextLine();
             try {
                 cli.acceptCommand(command);
             } catch (Exception e) {
+                cli.syntax.clear();
                 System.out.println(e.getMessage());
             }
         }

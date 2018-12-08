@@ -20,7 +20,7 @@ public class Number implements Type{
 		return content;
 	}
 	
-	Integer getInt() {
+	public Integer getInt() {
 		return (int) (double) content;
 	}
 

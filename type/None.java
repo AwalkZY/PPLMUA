@@ -2,6 +2,8 @@ package type;
 
 public class None implements Type{
 
+    public None(){}
+
     @Override
     public Object get() {
         return null;

@@ -8,14 +8,14 @@ import type.Number;
 import java.util.regex.Pattern;
 
 public class Common {
-	static final double PI = 3.14159;
+	private static final double PI = 3.14159;
 	public static final double EPS = 1e-10;
 	static final boolean True = true;
 	static final boolean False = false;
 	static final String[] occipied = {"make","thing","word","erase","number","list","bool","isname","print",
-			"read","readlinst","add","sub","mul","div","mod","eq","gt","lt","and","or","not","repeat"};
+			"read","readlist","add","sub","mul","div","mod","eq","gt","lt","and","or","not","repeat"};
 	static final String[] operator = {"make","thing","erase","isname","print",
-			"read","readlinst","add","sub","mul","div","mod","eq","gt","lt","and","or","not","repeat",
+			"read","readlist","add","sub","mul","div","mod","eq","gt","lt","and","or","not","repeat",
 	"int","isnumber","isword","islist","isbool","isempty"};
 	static final int[] slotNum = {2, //make
 			1, //thing
@@ -23,7 +23,7 @@ public class Common {
 			1, //isname
 			1, //print
 			0, //read
-			0, //readlinst
+			0, //readlist
 			2, //add
 			2, //sub
 			2, //mul
@@ -34,7 +34,7 @@ public class Common {
 			2, //lt
 			2, //and
 			2, //or
-			2, //not
+			1, //not
 			2, //repeat
 			1, //int,
 			1, //isnumber
@@ -84,4 +84,11 @@ public class Common {
 	static public boolean matchNumber(String str) {
 		return Pattern.matches("^-?[0-9]+(.[0-9]+)?$", str);
 	}
+
+    public static boolean isOccupied(String varStr) {
+	    for (String str : occipied) {
+	        if (str.equals(varStr)) return true;
+        }
+        return false;
+    }
 }
