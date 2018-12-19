@@ -1,58 +1,147 @@
 package type;
 
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 
-public class List implements Type{
-	private ArrayList<Type> content;
-	private static final int typeCode = 1;
+public class List implements Type {
+    private static final int typeCode = 1;
+    private String content;
+    private String first = "";
+    private String last = "";
+    private String butFirst = "";
+    private String butLast = "";
 
-	public List(){
-		content = new ArrayList<>();
-	}
+    public List getButFirst(){
+        length();
+        return new List(butFirst);
+    }
 
-	public List(ArrayList<Type> content) {
-		this.content = content;
-	}
+    public List getButLast(){
+        length();
+        return new List(butLast);
+    }
 
-	public void set(Object o) throws Exception{
-		if (o instanceof List) {
-			content = new ArrayList<>(((List) o).content);
-		}
-		else {
-			throw new Exception("Type Error: Incompatible value assigned to a instance of List.");
-		}
-	}
+    public Type getFirst(){
+        length();
+        if (first.length() > 0 && first.charAt(0) == '[') return new List(first.substring(1,first.length()-1));
+        return new Word(first);
+    }
 
-	public String toString(){
-		return content.toString();
-	}
+    public Type getLast(){
+        length();
+        if (last.length() > 0 && last.charAt(0) == '[') return new List(last.substring(1,last.length()-1));
+        return new Word(last);
+    }
 
-	public void set(ArrayList<Type> content) {
-		this.content = new ArrayList<>(content);
-	}
+    public List() {
+        content = "";
+    }
 
-	public void add(Type e) {
-		content.add(e);
-	}
-	
-	int size() {
-		return content.size();
-	}
-	
-	public Type get(int index) {
-		return (Type) content.get(index);
-	}
-	
-	public Object get() {
-		return content;
-	}
+    public List(String content) {
+        this.content = content;
+    }
 
-	public boolean isEmpty() {
-		return content.size() == 0;
-	}
+    public void set(Object o) throws Exception {
+        if (o instanceof String) {
+            content = (String) o;
+        } else {
+            throw new Exception("Type Error: Incompatible value assigned to a instance of List.");
+        }
+    }
 
-	@Override
-	public int getTypeCode() {
-		return typeCode;
-	}
+    @Override
+    public boolean isList() {
+        return true;
+    }
+
+    @Override
+    public boolean isNumber() {
+        return false;
+    }
+
+    @Override
+    public boolean isWord() {
+        return false;
+    }
+
+    @Override
+    public boolean isBool() {
+        return false;
+    }
+
+    public String toString() {
+        return "[ "+content + " ]";
+    }
+
+    public Object get() {
+        return content;
+    }
+
+    public boolean isEmpty() {
+        return content.trim().length() == 0;
+    }
+
+    @Override
+    public int getTypeCode() {
+        return typeCode;
+    }
+
+    public Type run(){
+
+        return new None();
+    }
+
+    public int length(){
+        int bracePair = 0,ans = 0,lastBlank = 1;
+        StringBuilder element = new StringBuilder();
+        for (int i = 0; i < content.length(); i++)
+        {
+            char ch = content.charAt(i);
+            boolean isBlank = Pattern.matches("\\s*",content.substring(i,i+1));
+            if (bracePair != 0) {
+                if (ch == '[') bracePair++;
+                if (ch == ']') bracePair--;
+                if (bracePair != 0) element.append(ch);
+                else {
+                    ans++;
+                    if (ans == 1) {
+                        first = "["+element.toString().trim()+"]";
+                        butFirst = content.substring(i+1);
+                    }
+                    last = "["+element.toString().trim()+"]";
+                    butLast = content.substring(0,lastBlank);
+                    element = new StringBuilder();
+                }
+                continue;
+            }
+            if (isBlank) {
+                lastBlank = i;
+                String item = element.toString();
+                if (!item.isEmpty()) {
+                    ans++;
+                    if (ans == 1) {
+                        first = element.toString().trim();
+                        butFirst = content.substring(i+1);
+                    }
+                    last = element.toString().trim();
+                    butLast = content.substring(0,lastBlank);
+                    element = new StringBuilder();
+                }
+                continue;
+            }
+            if (ch == '[') {
+                bracePair++;
+                continue;
+            }
+            element.append(ch);
+        }
+        if (element.toString().isEmpty()) return ans;
+        if (ans == 0) {
+            first = element.toString().trim();
+            butFirst = content;
+        }
+        last = element.toString().trim();
+        butLast = content.substring(0,lastBlank);
+        return ans+1;
+    }
 }

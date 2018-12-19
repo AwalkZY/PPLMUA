@@ -1,8 +1,9 @@
 package type;
 
-public class None implements Type{
+public class None implements Type {
 
-    public None(){}
+    public None() {
+    }
 
     @Override
     public Object get() {
@@ -10,14 +11,35 @@ public class None implements Type{
     }
 
     @Override
-    public void set(Object o) throws Exception {}
+    public void set(Object o) throws Exception {
+    }
+
+    @Override
+    public boolean isList() {
+        return false;
+    }
+
+    @Override
+    public boolean isNumber() {
+        return false;
+    }
+
+    @Override
+    public boolean isWord() {
+        return false;
+    }
+
+    @Override
+    public boolean isBool() {
+        return false;
+    }
 
     @Override
     public int getTypeCode() {
         return -1;
     }
 
-    public String toString(){
+    public String toString() {
         return null;
     }
 }
