@@ -12,10 +12,11 @@ public class Common {
     static final boolean True = true;
     static final boolean False = false;
     static final String[] occipied = {"make", "thing", "word", "erase", "number", "list", "bool", "isname", "print",
-            "read", "readlist", "add", "sub", "mul", "div", "mod", "eq", "gt", "lt", "and", "or", "not", "repeat","random","sqrt"};
+            "read", "readlist", "add", "sub", "mul", "div", "mod", "eq", "gt", "lt", "and", "or", "not", "repeat","random",
+            "sqrt","run","output","stop","export","if"};
     static final String[] operator = {"make", "thing", "erase", "isname", "print",
             "read", "readlist", "add", "sub", "mul", "div", "mod", "eq", "gt", "lt", "and", "or", "not", "repeat",
-            "int", "isnumber", "isword", "islist", "isbool", "isempty","random","sqrt"};
+            "int", "isnumber", "isword", "islist", "isbool", "isempty","random","sqrt","run","output", "stop","export","if"};
     static final int[] slotNum = {2, //make
             1, //thing
             1, //erase
@@ -42,7 +43,12 @@ public class Common {
             1, //isbool
             1, //isempty
             1, //random
-            1, //sqrt,
+            1, //sqrt
+            1, //run
+            1, //output
+            0, //stop
+            0, //export
+            3, //if
     };
     private static final double PI = 3.14159;
 
@@ -106,7 +112,7 @@ public class Common {
     public static boolean isRunnable(Type input){
         if (!input.isList()) return false;
         List curList = (List) input;
-        if ((curList.length() != 2)) return false;
+        if ((curList.getLength() != 2)) return false;
         if (!curList.getFirst().isList()) return false;
         return curList.getLast().isList();
     }

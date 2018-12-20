@@ -10,25 +10,34 @@ public class List implements Type {
     private String last = "";
     private String butFirst = "";
     private String butLast = "";
+    private int paraLen = 0;
+
+    public int getParaLen() {
+        Type firstEle = getFirst();
+        if (firstEle.isList()){
+            return ((List) firstEle).getLength();
+        }
+        return -1;
+    }
 
     public List getButFirst(){
-        length();
+        getLength();
         return new List(butFirst);
     }
 
     public List getButLast(){
-        length();
+        getLength();
         return new List(butLast);
     }
 
     public Type getFirst(){
-        length();
+        getLength();
         if (first.length() > 0 && first.charAt(0) == '[') return new List(first.substring(1,first.length()-1));
         return new Word(first);
     }
 
     public Type getLast(){
-        length();
+        getLength();
         if (last.length() > 0 && last.charAt(0) == '[') return new List(last.substring(1,last.length()-1));
         return new Word(last);
     }
@@ -86,13 +95,8 @@ public class List implements Type {
         return typeCode;
     }
 
-    public Type run(){
-
-        return new None();
-    }
-
-    public int length(){
-        int bracePair = 0,ans = 0,lastBlank = 1;
+    public int getLength(){
+        int bracePair = 0,ans = 0,lastBlank = 0;
         StringBuilder element = new StringBuilder();
         for (int i = 0; i < content.length(); i++)
         {
@@ -138,7 +142,7 @@ public class List implements Type {
         if (element.toString().isEmpty()) return ans;
         if (ans == 0) {
             first = element.toString().trim();
-            butFirst = content;
+            butFirst = "";
         }
         last = element.toString().trim();
         butLast = content.substring(0,lastBlank);

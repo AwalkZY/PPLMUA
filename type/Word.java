@@ -58,6 +58,10 @@ public class Word implements Type {
         return content.toString();
     }
 
+    public String getRawString() {
+        return "\""+content.toString();
+    }
+
     @Override
     public int getTypeCode() {
         return typeCode;
