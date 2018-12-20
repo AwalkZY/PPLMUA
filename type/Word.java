@@ -1,5 +1,7 @@
 package type;
 
+import common.Common;
+
 import java.util.regex.Pattern;
 
 public class Word implements Type {
@@ -16,6 +18,26 @@ public class Word implements Type {
 
     public boolean isBool() {
         return content.equals("true") || content.equals("false");
+    }
+
+    @Override
+    public Type getFirst() {
+        return new Word(content.substring(0,1));
+    }
+
+    @Override
+    public Type getLast() {
+        return new Word(content.substring(content.length()-1));
+    }
+
+    @Override
+    public Type getButFirst() {
+        return new Word(content.substring(1));
+    }
+
+    @Override
+    public Type getButLast() {
+        return new Word(content.substring(0,content.length()-1));
     }
 
     public boolean getBool() throws Exception {
@@ -55,11 +77,12 @@ public class Word implements Type {
     }
 
     public String toString() {
+        if (Common.isInteger(this)) return Integer.valueOf(((int)(double)Double.valueOf(content))).toString();
         return content.toString();
     }
 
     public String getRawString() {
-        return "\""+content.toString();
+        return "\"" + content.toString();
     }
 
     @Override

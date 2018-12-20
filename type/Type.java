@@ -1,6 +1,8 @@
 package type;
 
-public interface Type {
+import java.io.Serializable;
+
+public interface Type extends Serializable {
     abstract int getTypeCode();
 
     abstract Object get();
@@ -14,4 +16,12 @@ public interface Type {
     abstract boolean isWord();
 
     abstract boolean isBool();
+
+    abstract Type getFirst();
+
+    abstract Type getLast();
+
+    abstract Type getButFirst();
+
+    abstract Type getButLast();
 }

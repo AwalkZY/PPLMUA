@@ -6,6 +6,7 @@ import type.None;
 import type.Type;
 import type.Word;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -13,12 +14,13 @@ import java.util.Stack;
 import java.util.regex.Pattern;
 
 public class SyntaxStack {
+    private static HashMap<String, Type> globalVar;
     private Stack<String> instStack;
     private Stack<ArrayList<Type>> slotStack;
     private HashMap<String, Type> variable;
     private Type output;
+    private boolean state = true;
     private boolean stopMark = false;
-    private static HashMap<String, Type> globalVar;
 
     public SyntaxStack() {
         variable = new HashMap<>();
@@ -30,6 +32,10 @@ public class SyntaxStack {
 
     private Type getOutput() {
         return this.output;
+    }
+
+    private boolean getState(){
+        return this.state;
     }
 
     public boolean isEmpty() {
@@ -47,17 +53,16 @@ public class SyntaxStack {
                 return;
             }
             ch = command.charAt(index);
-            if ((Pattern.matches("\\s*",command.substring(index,index+1)))) {
+            if ((Pattern.matches("\\s*", command.substring(index, index + 1)))) {
                 String comStr = com.toString();
                 if (!comStr.isEmpty()) {
                     int order = Common.getSlotNum(comStr);
                     if (order == -1) {
                         Type func = fetchFunc(comStr);
-                        if (!Common.isNone(func)){
+                        if (!Common.isNone(func)) {
                             instStack.push(comStr);
                             slotStack.push(new ArrayList<Type>());
-                        }
-                        else {
+                        } else {
                             if (instStack.empty())
                                 throw new Exception("Name Error: Unexpected parameter or operator found.");
                             slotStack.peek().add(fetchConst(comStr));
@@ -85,7 +90,7 @@ public class SyntaxStack {
                 }
                 if (bracePair != 0) throw new Exception("Invalid Syntax: Unmatched braces.");
                 String ans = list.toString();
-                ans = ans.substring(1,ans.length()-1);
+                ans = ans.substring(1, ans.length() - 1);
                 List newList = new List(ans);
                 /*System.out.println("Len "+newList.getLength());
                 System.out.println("Get "+newList.get());
@@ -122,9 +127,10 @@ public class SyntaxStack {
             sortStack();
             index++;
         }  //end of while-loop
+        if (!instStack.empty()) this.state = false;
     }
 
-    private int getParaLen(String funcName){
+    private int getParaLen(String funcName) {
         List func = null;
         int ans = Common.getSlotNum(instStack.peek());
         if (ans == -1) {
@@ -154,14 +160,13 @@ public class SyntaxStack {
         if (variable.containsKey(operand)) {
             Type ans = variable.get(operand);
             if (Common.isRunnable(ans)) return ans;
-        }
-        else if (globalVar.containsKey(operand)) {
+        } else if (globalVar.containsKey(operand)) {
             Type ans = globalVar.get(operand);
             if (Common.isRunnable(ans)) return ans;
         }
         return new None();
     }
-    
+
     private Type fetchConst(String operand) throws Exception {
         /*if (variable.containsKey(operand)) {
             return variable.get(operand);
@@ -179,6 +184,13 @@ public class SyntaxStack {
         for (Type type : slot) {
             if (Common.isNone(type))
                 throw new Exception("Type Error: Invalid data type for " + operator + " operation!");
+        }
+        List func = null;
+        if (variable.containsKey(operator)) func = (List) variable.get(operator);
+        else if (globalVar.containsKey(operator)) func = (List) globalVar.get(operator);
+        //System.out.println(func);
+        if (func != null) {
+            return selfRun(func, slot);
         }
         switch (operator) {
             case "make":
@@ -237,15 +249,140 @@ public class SyntaxStack {
                 return export(slot);
             case "if":
                 return myif(slot);
+            case "first":
+                return first(slot);
+            case "last":
+                return last(slot);
+            case "butfirst":
+                return butfirst(slot);
+            case "butlast":
+                return butlast(slot);
+            case "wait":
+                return mywait(slot);
+            case "poall":
+                return poall(slot);
+            case "erall":
+                return erall(slot);
+            case "word":
+                return word(slot);
+            case "sentence":
+                return sentence(slot);
+            case "list":
+                return list(slot);
+            case "join":
+                return join(slot);
+            case "save":
+                return save(slot);
+            case "load":
+                return load(slot);
             default:
-                List func = null;
-                if (variable.containsKey(operator)) func = (List) variable.get(operator);
-                else if (globalVar.containsKey(operator)) func = (List) globalVar.get(operator);
-                if (func != null) {
-                    return selfRun(func,slot);
-                }
-                else return func;
+                return new None();
         }
+    }
+
+    private Type save(ArrayList<Type> slot) throws Exception {
+        assert slot.size() == 1;
+        Type para = slot.get(0);
+        if (!Common.isWord(para)) throw new Exception("Type Error: Incompatible type for save operation!");
+        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(
+                new File(((Word)para).toString())));  //打开对象输出流写出序列化对象
+        oos.writeObject(variable);
+        return new None();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Type load(ArrayList<Type> slot) throws Exception {
+        assert slot.size() == 1;
+        Type para = slot.get(0);
+        if (!Common.isWord(para)) throw new Exception("Type Error: Incompatible type for load operation!");
+        ObjectInputStream ois = new ObjectInputStream(new FileInputStream(
+                new File(((Word)para).toString())));   //打开对象输入流读入序列化对象
+        HashMap<String, Type> tempVar = (HashMap<String, Type>) ois.readObject();
+        for (String key : tempVar.keySet()) variable.put(key,tempVar.get(key));
+        return new None();
+    }
+
+    private Type join(ArrayList<Type> slot) throws Exception {
+        assert slot.size() == 2;
+        Type para1 = slot.get(0);
+        Type para2 = slot.get(1);
+        if (!Common.isList(para1)) throw new Exception("Type Error: Incompatible type for join operation!");
+        ((List)para1).add(para2);
+        return new None();
+    }
+
+    private Type list(ArrayList<Type> slot) {
+        assert slot.size() == 2;
+        Type para1 = slot.get(0);
+        Type para2 = slot.get(1);
+        return new List(para1.toString()+" "+para2.toString());
+    }
+
+    private Type sentence(ArrayList<Type> slot) {
+        assert slot.size() == 2;
+        Type para1 = slot.get(0);
+        Type para2 = slot.get(1);
+        return new List(para1.get()+" "+para2.get());
+    }
+
+    private Type word(ArrayList<Type> slot) throws Exception {
+        assert slot.size() == 2;
+        Type para1 = slot.get(0);
+        Type para2 = slot.get(1);
+        if (!Common.isWord(para1) || !Common.isWord(para2)) throw new Exception("Type Error: Incompatible type for word operation!");
+        return new Word(((Word)para1).get()+((Word)para2).get());
+    }
+
+    private Type erall(ArrayList<Type> slot) {
+        variable = new HashMap<>();
+        //Common.eraseAll();
+        return new None();
+    }
+
+    private Type poall(ArrayList<Type> slot) throws Exception {
+        assert slot.size() == 0;
+        for (String key : variable.keySet()) {
+            String tip = null;
+            Type var = variable.get(key);
+            if (Common.isInteger(var)) tip = "Integer";
+            else if (Common.isNumber(var)) tip = "Double";
+            else if (Common.isRunnable(var)) tip = "Function";
+            else if (Common.isList(var)) tip = "List";
+            else if (Common.isBool(var)) tip = "Boolean";
+            else if (Common.isWord(var)) tip = "Word";
+            System.out.println("User-defined: " + tip + " " + key);
+        }
+        for (String key : Common.getAvailable()) System.out.println("System-defined: Operation " + key);
+        System.out.println("--------------Poall Over--------------");
+        return new None();
+    }
+
+    private Type mywait(ArrayList<Type> slot) throws Exception {
+        assert slot.size() == 1;
+        Type para = slot.get(0);
+        if (!Common.isInteger(para)) throw new Exception("Type Error: improper value for wait operation! (Integer needed here)");
+        Thread.sleep((int)((Word)para).getNumber());
+        return new None();
+    }
+
+    private Type first(ArrayList<Type> slot) {
+        assert slot.size() == 1;
+        return slot.get(0).getFirst();
+    }
+
+    private Type last(ArrayList<Type> slot) {
+        assert slot.size() == 1;
+        return slot.get(0).getLast();
+    }
+
+    private Type butfirst(ArrayList<Type> slot) {
+        assert slot.size() == 1;
+        return slot.get(0).getButFirst();
+    }
+
+    private Type butlast(ArrayList<Type> slot) {
+        assert slot.size() == 1;
+        return slot.get(0).getButLast();
     }
 
     private void passToStack(List command) throws Exception {
@@ -257,8 +394,9 @@ public class SyntaxStack {
         Type cond = slot.get(0);
         Type stat1 = slot.get(1);
         Type stat2 = slot.get(2);
-        if (!Common.isBool(cond) || !Common.isList(stat1)  || !Common.isList(stat2)) throw new Exception("Type Error: Incompatible type for if operation!");
-        if (((Word)cond).getBool()) passToStack((List) stat1);
+        if (!Common.isBool(cond) || !Common.isList(stat1) || !Common.isList(stat2))
+            throw new Exception("Type Error: Incompatible type for if operation!");
+        if (((Word) cond).getBool()) passToStack((List) stat1);
         else passToStack((List) stat2);
         return new None();
     }
@@ -266,7 +404,7 @@ public class SyntaxStack {
     private Type export(ArrayList<Type> slot) {
         assert slot.size() == 0;
         for (String key : variable.keySet()) {
-            globalVar.put(key,variable.get(key));
+            globalVar.put(key, variable.get(key));
         }
         return new None();
     }
@@ -294,19 +432,24 @@ public class SyntaxStack {
     private Type selfRun(List func, ArrayList<Type> slot) throws Exception {
         List paraList = (List) func.getFirst();
         SyntaxStack stackFrame = new SyntaxStack();
-        System.out.println("***************Here is self func!**********************");
+        //System.out.println("***************Here is self func!**********************");
         int index = 0;
         while (!paraList.isEmpty()) {
             Type paraName = paraList.getFirst();
-            paraList = paraList.getButFirst();
+            paraList = (List) paraList.getButFirst();
             Type para = slot.get(index);
             if (!paraName.isWord()) throw new Exception("Type Error: Invalid type as a function parameter!");
-            stackFrame.interprete("make "+((Word)paraName).getRawString()+" "+((Word)para).getRawString());
+            String paraRawString;
+            if (para.isWord()) paraRawString = ((Word) para).getRawString();
+            else paraRawString = ((List) para).toString();
+            stackFrame.interprete("make " + ((Word) paraName).getRawString() + " " + paraRawString);
             index++;
         }
-        stackFrame.interprete((String)((List) func.getLast()).get());
-        System.out.println("***************Self func is over!**********************");
+//        System.out.println((String) ((List) func.getLast()).get());
+        stackFrame.interprete((String) ((List) func.getLast()).get());
+        //System.out.println("***************Self func is over!**********************");
         //while not empty, make the first parameter and make List <- getButFirst
+        if (!stackFrame.getState()) throw new Exception("RunTime Error: This function works unexpectedly!");
         return stackFrame.getOutput();
     }
 
@@ -314,8 +457,9 @@ public class SyntaxStack {
         assert slot.size() == 2;
         Type para1 = slot.get(0);
         Type para2 = slot.get(1);
-        if (!Common.isInteger(para1) || !Common.isList(para2)) throw new Exception("Type Error: Improper type for repeat operation!");
-        int times = (int)((Word)(para1)).getNumber();
+        if (!Common.isInteger(para1) || !Common.isList(para2))
+            throw new Exception("Type Error: Improper type for repeat operation!");
+        int times = (int) ((Word) (para1)).getNumber();
         for (int i = 0; i < times; i++) passToStack((List) para2);
         return new None();
     }
@@ -326,7 +470,7 @@ public class SyntaxStack {
         if (!Common.isNumber(para)) throw new Exception("Type Error: Improper data type for random operation");
         double paraNum = ((Word) para).getNumber();
         if (paraNum < 0) throw new Exception("Math Error: Negative parameter detected in sqrt operation!");
-        return new Word(Math.floor(Math.random()*paraNum));
+        return new Word(Math.floor(Math.random() * paraNum));
     }
 
     private Type sqrt(ArrayList<Type> slot) throws Exception {
@@ -422,9 +566,9 @@ public class SyntaxStack {
         assert slot.size() == 1;
         Type para = slot.get(0);
         if (!Common.isWord(para)) return new Word(false);
-        if (variable.containsKey(((Word)para).get())) return new Word(true);
-        if (globalVar.containsKey(((Word)para).get())) return new Word(true);
-        if (Common.isOccupied(((Word)para).get())) return new Word(true);
+        if (variable.containsKey(((Word) para).get())) return new Word(true);
+        if (globalVar.containsKey(((Word) para).get())) return new Word(true);
+        if (Common.isOccupied(((Word) para).get())) return new Word(true);
         return new Word(false);
     }
 
@@ -459,7 +603,7 @@ public class SyntaxStack {
         Type para2 = slot.get(1);
         if (!Common.isWord(para1)) throw new Exception("Syntax Error: Improper parameter for make operation!");
         String varStr = ((Word) (para1)).get();
-        if (Common.isOccupied(varStr)) throw new Exception("Syntax Error: Improper parameter for make operation!");
+        // if (Common.isOccupied(varStr)) throw new Exception("Syntax Error: Improper parameter for make operation!");
         if ((varStr.charAt(0) >= 'a' && varStr.charAt(0) <= 'z') || (varStr.charAt(0) >= 'A' && varStr.charAt(0) <= 'Z'))
             variable.put(varStr, para2);
         else throw new Exception("Type Error: Improper data type for make operation!");
@@ -470,10 +614,20 @@ public class SyntaxStack {
         assert slot.size() == 1;
         Type para = slot.get(0);
         if (!Common.isWord(para)) throw new Exception("Type Error: Improper parameter for erase operation");
-        if (Common.isOccupied(para.toString())) throw new Exception("Name Error: keyword can't be erased.");
-        if (!variable.containsKey(para.toString())) throw new Exception("Name Error: Unknown parameter detected.");
-        variable.remove(para.toString());
-        return new None();
+        if (variable.containsKey(para.toString())) {
+            variable.remove(para.toString());
+            return new None();
+        }
+        if (globalVar.containsKey(para.toString())) {
+            globalVar.remove(para.toString());
+            return new None();
+        }
+        if (Common.isOccupied(para.toString())) //throw new Exception("Name Error: keyword can't be erased.");
+        {
+            Common.setErased(para.toString());
+            return new None();
+        }
+        throw new Exception("Name Error: Unknown parameter detected.");
     }
 
     private Type thing(ArrayList<Type> slot) throws Exception {

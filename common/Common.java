@@ -5,19 +5,28 @@ import type.None;
 import type.Type;
 import type.Word;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 public class Common {
     public static final double EPS = 1e-8;
     static final boolean True = true;
     static final boolean False = false;
-    static final String[] occipied = {"make", "thing", "word", "erase", "number", "list", "bool", "isname", "print",
-            "read", "readlist", "add", "sub", "mul", "div", "mod", "eq", "gt", "lt", "and", "or", "not", "repeat","random",
-            "sqrt","run","output","stop","export","if"};
-    static final String[] operator = {"make", "thing", "erase", "isname", "print",
+    private static final String[] occipied = {"make", "thing", "erase", "isname", "print",
             "read", "readlist", "add", "sub", "mul", "div", "mod", "eq", "gt", "lt", "and", "or", "not", "repeat",
-            "int", "isnumber", "isword", "islist", "isbool", "isempty","random","sqrt","run","output", "stop","export","if"};
-    static final int[] slotNum = {2, //make
+            "int", "isnumber", "isword", "islist", "isbool", "isempty", "random", "sqrt", "run", "output", "stop", "export", "if",
+            "first","last","butfirst","butlast","wait","poall","erall","word","sentence","list","join","save","load"
+    };
+    private static final String[] operator = {"make", "thing", "erase", "isname", "print",
+            "read", "readlist", "add", "sub", "mul", "div", "mod", "eq", "gt", "lt", "and", "or", "not", "repeat",
+            "int", "isnumber", "isword", "islist", "isbool", "isempty", "random", "sqrt", "run", "output", "stop", "export", "if",
+            "first","last","butfirst","butlast","wait","poall","erall","word","sentence","list","join","save","load"
+    };
+    private static HashSet<String> erased = new HashSet<>();
+    private static final int[] slotNum = {
+            2, //make
             1, //thing
             1, //erase
             1, //isname
@@ -36,7 +45,7 @@ public class Common {
             2, //or
             1, //not
             2, //repeat
-            1, //int,
+            1, //int
             1, //isnumber
             1, //isword
             1, //islist
@@ -49,17 +58,31 @@ public class Common {
             0, //stop
             0, //export
             3, //if
+            1, //first
+            1, //last
+            1, //butfirst
+            1, //butlast
+            1, //wait
+            0, //poall
+            0, //erall
+            2, //word
+            2, //sentence
+            2, //list
+            2, //join
+            1, //save
+            1, //load
     };
+
     private static final double PI = 3.14159;
 
     static public int getSlotNum(String str) {
         for (int i = 0; i < operator.length; i++) {
-            if (str.equals(operator[i])) return slotNum[i];
+            if (str.equals(operator[i]) && !getErased(str)) return slotNum[i];
         }
         return -1;
     }
 
-    static public boolean isZero(double x) {
+    private static boolean isZero(double x) {
         return Math.abs(x) <= EPS;
     }
 
@@ -67,9 +90,13 @@ public class Common {
         return input.isNumber();
     }
 
-    public static boolean isInteger(Type input) throws Exception {
+    public static boolean isInteger(Type input){
         if (!input.isNumber()) return false;
-        return isZero((int)((Word) input).getNumber()-((Word) input).getNumber());
+        try {
+            return isZero((int) ((Word) input).getNumber() - ((Word) input).getNumber());
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     static public boolean isList(Type input) {
@@ -89,7 +116,7 @@ public class Common {
     }
 
     static public Type getConstant(String constName) throws Exception {
-        if (constName.equals("PI")) {
+        if (constName.equals("PI") && getErased("PI")) {
             return new Word(PI);
         }
         if (constName.equals("true") || constName.equals("false")) {
@@ -104,16 +131,37 @@ public class Common {
 
     public static boolean isOccupied(String varStr) {
         for (String str : occipied) {
-            if (str.equals(varStr)) return true;
+            if (str.equals(varStr)) return !getErased(str);
         }
         return false;
     }
 
-    public static boolean isRunnable(Type input){
+    public static boolean isRunnable(Type input) {
         if (!input.isList()) return false;
         List curList = (List) input;
         if ((curList.getLength() != 2)) return false;
         if (!curList.getFirst().isList()) return false;
         return curList.getLast().isList();
     }
+
+    public static void setErased(String instName) {
+        erased.add(instName);
+    }
+
+    public static boolean getErased(String instName) {
+        return (erased.contains(instName));
+    }
+
+    public static Set<String> getAvailable(){
+        Set<String> ans = new HashSet<>();
+        for (String str : occipied) {
+            if (!getErased(str)) ans.add(str);
+        }
+        return ans;
+    }
+
+//    public static void eraseAll() {  //Danger!!!!
+//        for (String str : occipied)
+//            setErased(str);
+//    }
 }

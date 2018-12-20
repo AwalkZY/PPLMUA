@@ -35,6 +35,26 @@ public class None implements Type {
     }
 
     @Override
+    public Type getFirst() {
+        return null;
+    }
+
+    @Override
+    public Type getLast() {
+        return null;
+    }
+
+    @Override
+    public Type getButFirst() {
+        return null;
+    }
+
+    @Override
+    public Type getButLast() {
+        return null;
+    }
+
+    @Override
     public int getTypeCode() {
         return -1;
     }
