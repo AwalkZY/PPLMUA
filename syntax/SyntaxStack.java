@@ -1,6 +1,7 @@
 package syntax;
 
 import common.Common;
+import common.InputSource;
 import type.List;
 import type.None;
 import type.Type;
@@ -56,50 +57,51 @@ public class SyntaxStack {
             if ((Pattern.matches("\\s*", command.substring(index, index + 1)))) {
                 String comStr = com.toString();
                 if (!comStr.isEmpty()) {
-                    int order = Common.getSlotNum(comStr);
-                    if (order == -1) {
-                        Type func = fetchFunc(comStr);
-                        if (!Common.isNone(func)) {
+                    Type func = fetchFunc(comStr);
+                    if (!Common.isNone(func)) {
+                        instStack.push(comStr);
+                        slotStack.push(new ArrayList<Type>());
+                    }
+                    else {
+                        int order = Common.getSlotNum(comStr);
+                        if (order != -1) {
                             instStack.push(comStr);
                             slotStack.push(new ArrayList<Type>());
-                        } else {
+                        }
+                        else {
                             if (instStack.empty())
                                 throw new Exception("Name Error: Unexpected parameter or operator found.");
                             slotStack.peek().add(fetchConst(comStr));
                         }
-                    } else {
-                        instStack.push(comStr);
-                        slotStack.push(new ArrayList<Type>());
                     }
                     com = new StringBuilder();
                 }
             } //end of issuing
             else if (ch == '[') {  //here we generate a list
-                int bracePair = 0;
-                StringBuilder list;
-                list = new StringBuilder();
+                int bracePair = 1;
+                boolean flag = false;
+                StringBuilder list = new StringBuilder();
                 list.append(ch);
-                bracePair++;
                 while (bracePair != 0) {
                     index++;
-                    if (index >= command.length()) break;
+                    while (index >= command.length()) {
+                        System.out.print("...");
+                        command += InputSource.nextLine();
+                    }
                     ch = command.charAt(index);
-                    if (ch == '[') bracePair++;
-                    if (ch == ']') bracePair--;
+                    if (ch == '"' || ch == ':') flag = true;
+                    if (ch == ' ' || ch == '\t') flag = false;
+                    if (ch == '[' && !flag) bracePair++;
+                    if (ch == ']' && !flag) bracePair--;
                     list.append(ch);
                 }
-                if (bracePair != 0) throw new Exception("Invalid Syntax: Unmatched braces.");
+/*                if (bracePair != 0) {
+                    throw new Exception("Invalid Syntax: Unmatched braces.");
+                }*/
                 String ans = list.toString();
                 ans = ans.substring(1, ans.length() - 1);
                 List newList = new List(ans);
-                /*System.out.println("Len "+newList.getLength());
-                System.out.println("Get "+newList.get());
-                System.out.println("1st "+newList.getFirst());
-                System.out.println("Last "+newList.getLast());
-                System.out.println("but1st "+newList.getButFirst());
-                System.out.println("butlast "+newList.getButLast());
-                System.out.println(Common.isRunnable(newList));*/
-                slotStack.peek().add(newList);
+                if (!slotStack.empty()) slotStack.peek().add(newList);
             }  //end of list
             else if (ch == '"' || ch == ':') {
                 StringBuilder word;
@@ -120,7 +122,7 @@ public class SyntaxStack {
                     else throw new Exception("Name Error : Unknown parameter detected!");
                 else {
                     Word newWord = new Word(word.toString());
-                    slotStack.peek().add(newWord);
+                    if (!slotStack.empty()) slotStack.peek().add(newWord);
                 }
             }  //end of word
             else com.append(command.charAt(index));
@@ -132,13 +134,14 @@ public class SyntaxStack {
 
     private int getParaLen(String funcName) {
         List func = null;
-        int ans = Common.getSlotNum(instStack.peek());
-        if (ans == -1) {
-            if (variable.containsKey(funcName)) func = (List) variable.get(funcName);
-            else if (globalVar.containsKey(funcName)) func = (List) globalVar.get(funcName);
-            if (func != null) {
-                ans = func.getParaLen();
-            }
+        int ans;
+        if (variable.containsKey(funcName)) func = (List) variable.get(funcName);
+        else if (globalVar.containsKey(funcName)) func = (List) globalVar.get(funcName);
+        if (func != null) {
+            ans = func.getParaLen();
+        }
+        else {
+            ans = Common.getSlotNum(instStack.peek());
         }
         return ans;
     }
@@ -177,7 +180,7 @@ public class SyntaxStack {
         if (Common.matchNumber(operand)) {  //number
             return new Word(Double.valueOf(operand));
         }
-        throw new Exception("Name Error: Unknown parameter or operation detected!");
+        throw new Exception("Name Error: Unknown parameter or operation " +operand+ " detected!");
     }
 
     private Type issueFun(String operator, ArrayList<Type> slot) throws Exception {
@@ -189,9 +192,7 @@ public class SyntaxStack {
         if (variable.containsKey(operator)) func = (List) variable.get(operator);
         else if (globalVar.containsKey(operator)) func = (List) globalVar.get(operator);
         //System.out.println(func);
-        if (func != null) {
-            return selfRun(func, slot);
-        }
+        if (func != null) return selfRun(func, slot);
         switch (operator) {
             case "make":
                 return make(slot);
@@ -307,8 +308,9 @@ public class SyntaxStack {
         Type para1 = slot.get(0);
         Type para2 = slot.get(1);
         if (!Common.isList(para1)) throw new Exception("Type Error: Incompatible type for join operation!");
-        ((List)para1).add(para2);
-        return new None();
+        List ans = new List((String) ((List)para1).get());
+        ans.add(para2);
+        return ans;
     }
 
     private Type list(ArrayList<Type> slot) {
@@ -401,12 +403,17 @@ public class SyntaxStack {
         return new None();
     }
 
-    private Type export(ArrayList<Type> slot) {
-        assert slot.size() == 0;
-        for (String key : variable.keySet()) {
-            globalVar.put(key, variable.get(key));
+    private Type export(ArrayList<Type> slot) throws Exception {
+        assert slot.size() == 1;
+        Type para = slot.get(0);
+        if (!Common.isWord(para)) throw new Exception("Type Error: Incompatible type for export operation!");
+        String operand = ((Word)(para)).get();
+        if (variable.containsKey(operand)) {
+            Type ans = variable.get(operand);
+            globalVar.put(operand,ans);
+            return new None();
         }
-        return new None();
+        else throw new Exception("Name Error: Unknown parameter detected.");
     }
 
     private Type stop(ArrayList<Type> slot) {
@@ -445,11 +452,10 @@ public class SyntaxStack {
             stackFrame.interprete("make " + ((Word) paraName).getRawString() + " " + paraRawString);
             index++;
         }
-//        System.out.println((String) ((List) func.getLast()).get());
         stackFrame.interprete((String) ((List) func.getLast()).get());
         //System.out.println("***************Self func is over!**********************");
         //while not empty, make the first parameter and make List <- getButFirst
-        if (!stackFrame.getState()) throw new Exception("RunTime Error: This function works unexpectedly!");
+        if (!stackFrame.getState()) throw new Exception("Syntax Error: This function works unexpectedly!");
         return stackFrame.getOutput();
     }
 
@@ -470,7 +476,7 @@ public class SyntaxStack {
         if (!Common.isNumber(para)) throw new Exception("Type Error: Improper data type for random operation");
         double paraNum = ((Word) para).getNumber();
         if (paraNum < 0) throw new Exception("Math Error: Negative parameter detected in sqrt operation!");
-        return new Word(Math.floor(Math.random() * paraNum));
+        return new Word(Math.random() * paraNum);
     }
 
     private Type sqrt(ArrayList<Type> slot) throws Exception {
@@ -519,7 +525,7 @@ public class SyntaxStack {
         Type para = slot.get(0);
         if (!Common.isNumber(para)) throw new Exception("Type Error: Improper data type for floor operation");
         double ans = ((Word) para).getNumber();
-        return new Word(ans);
+        return new Word((int)ans);
     }
 
     private Type calBool(ArrayList<Type> slot, String operator) throws Exception {
@@ -543,7 +549,7 @@ public class SyntaxStack {
         assert slot.size() == 2;
         Type para1 = slot.get(0);
         Type para2 = slot.get(1);
-        if (para1.getTypeCode() != para2.getTypeCode())
+        if (para1.getTypeCode() != para2.getTypeCode() || Common.isList(para1)|| Common.isList(para2))
             throw new Exception("Type Error: Improper data type for comparison.");
         if (Common.isNumber(para1) && Common.isNumber(para2)) {
             double num1 = ((Word) (para1)).getNumber();
@@ -574,19 +580,15 @@ public class SyntaxStack {
 
     private Type readlist(ArrayList<Type> slot) {
         assert slot.size() == 0;
-        Scanner in = new Scanner(System.in);
         System.out.print("<<<");
-        String str = in.nextLine();
+        String str = InputSource.nextLine();
         return new List(str);
     }
 
     private Type read(ArrayList<Type> slot) throws Exception {
         assert slot.size() == 0;
-        Scanner in = new Scanner(System.in);
         System.out.print("<<<");
-        String str = in.next();
-        if (Common.matchNumber(str)) return new Word(Double.valueOf(str));
-        if (str.equals("True") || str.equals("False")) return new Word(str.equals("True"));
+        String str = InputSource.next();
         return new Word(str);
     }
 
@@ -604,9 +606,10 @@ public class SyntaxStack {
         if (!Common.isWord(para1)) throw new Exception("Syntax Error: Improper parameter for make operation!");
         String varStr = ((Word) (para1)).get();
         // if (Common.isOccupied(varStr)) throw new Exception("Syntax Error: Improper parameter for make operation!");
-        if ((varStr.charAt(0) >= 'a' && varStr.charAt(0) <= 'z') || (varStr.charAt(0) >= 'A' && varStr.charAt(0) <= 'Z'))
+        if ((varStr.charAt(0) >= 'a' && varStr.charAt(0) <= 'z') || (varStr.charAt(0) >= 'A' && varStr.charAt(0) <= 'Z') || varStr.charAt(0) == '_')
             variable.put(varStr, para2);
         else throw new Exception("Type Error: Improper data type for make operation!");
+//        System.out.println(variable);
         return new None();
     }
 

@@ -22,21 +22,25 @@ public class Word implements Type {
 
     @Override
     public Type getFirst() {
+        if (content.length() == 0) return new Word("");
         return new Word(content.substring(0,1));
     }
 
     @Override
     public Type getLast() {
+        if (content.length() == 0) return new Word("");
         return new Word(content.substring(content.length()-1));
     }
 
     @Override
     public Type getButFirst() {
+        if (content.length() == 0) return new Word("");
         return new Word(content.substring(1));
     }
 
     @Override
     public Type getButLast() {
+        if (content.length() == 0) return new Word("");
         return new Word(content.substring(0,content.length()-1));
     }
 

@@ -56,7 +56,7 @@ public class Common {
             1, //run
             1, //output
             0, //stop
-            0, //export
+            1, //export
             3, //if
             1, //first
             1, //last
@@ -116,7 +116,7 @@ public class Common {
     }
 
     static public Type getConstant(String constName) throws Exception {
-        if (constName.equals("PI") && getErased("PI")) {
+        if (constName.equals("PI") && !getErased("PI")) {
             return new Word(PI);
         }
         if (constName.equals("true") || constName.equals("false")) {

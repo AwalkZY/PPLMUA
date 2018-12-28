@@ -97,12 +97,15 @@ public class List implements Type {
     public int getLength() {
         int bracePair = 0, ans = 0, lastBlank = 0;
         StringBuilder element = new StringBuilder();
+        boolean flag = false;
         for (int i = 0; i < content.length(); i++) {
             char ch = content.charAt(i);
             boolean isBlank = Pattern.matches("\\s*", content.substring(i, i + 1));
+            if (ch == '"' || ch == ':') flag = true;
+            if (ch == ' ' || ch == '\t' || ch == '\n') flag = false;
             if (bracePair != 0) {
-                if (ch == '[') bracePair++;
-                if (ch == ']') bracePair--;
+                if (ch == '[' && !flag) bracePair++;
+                if (ch == ']' && !flag) bracePair--;
                 if (bracePair != 0) element.append(ch);
                 else {
                     ans++;

@@ -3,25 +3,25 @@ package type;
 import java.io.Serializable;
 
 public interface Type extends Serializable {
-    abstract int getTypeCode();
+    int getTypeCode();
 
-    abstract Object get();
+    Object get();
 
-    abstract void set(Object o) throws Exception;
+    void set(Object o) throws Exception;
 
-    abstract boolean isList();
+    boolean isList();
 
-    abstract boolean isNumber();
+    boolean isNumber();
 
-    abstract boolean isWord();
+    boolean isWord();
 
-    abstract boolean isBool();
+    boolean isBool();
 
-    abstract Type getFirst();
+    Type getFirst();
 
-    abstract Type getLast();
+    Type getLast();
 
-    abstract Type getButFirst();
+    Type getButFirst();
 
-    abstract Type getButLast();
+    Type getButLast();
 }
